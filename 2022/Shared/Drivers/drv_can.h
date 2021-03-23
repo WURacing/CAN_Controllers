@@ -222,6 +222,7 @@ struct drv_can_tx_buffer_element * drv_can_get_tx_buffer(enum drv_can_tx_buffer_
 void drv_can_queue_tx_buffer(can_registers_t * bus, enum drv_can_tx_buffer_table id);
 bool drv_can_check_rx_buffer(can_registers_t * bus, enum drv_can_rx_buffer_table id);
 void drv_can_clear_rx_buffer(can_registers_t * bus, enum drv_can_rx_buffer_table id);
+int drv_can_read_lec(can_registers_t * bus);
 
 #define DRV_CAN_XTD_FILTER(BUS, MSG) { \
 	.XIDFE_0 = { \

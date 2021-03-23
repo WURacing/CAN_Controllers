@@ -1,113 +1,114 @@
-#
-#  There exist several targets which are by default empty and which can be 
-#  used for execution of your targets. These targets are usually executed 
-#  before and after some main targets. They are: 
-#
-#     .build-pre:              called before 'build' target
-#     .build-post:             called after 'build' target
-#     .clean-pre:              called before 'clean' target
-#     .clean-post:             called after 'clean' target
-#     .clobber-pre:            called before 'clobber' target
-#     .clobber-post:           called after 'clobber' target
-#     .all-pre:                called before 'all' target
-#     .all-post:               called after 'all' target
-#     .help-pre:               called before 'help' target
-#     .help-post:              called after 'help' target
-#
-#  Targets beginning with '.' are not intended to be called on their own.
-#
-#  Main targets can be executed directly, and they are:
-#  
-#     build                    build a specific configuration
-#     clean                    remove built files from a configuration
-#     clobber                  remove all built files
-#     all                      build all configurations
-#     help                     print help mesage
-#  
-#  Targets .build-impl, .clean-impl, .clobber-impl, .all-impl, and
-#  .help-impl are implemented in nbproject/makefile-impl.mk.
-#
-#  Available make variables:
-#
-#     CND_BASEDIR                base directory for relative paths
-#     CND_DISTDIR                default top distribution directory (build artifacts)
-#     CND_BUILDDIR               default top build directory (object files, ...)
-#     CONF                       name of current configuration
-#     CND_ARTIFACT_DIR_${CONF}   directory of build artifact (current configuration)
-#     CND_ARTIFACT_NAME_${CONF}  name of build artifact (current configuration)
-#     CND_ARTIFACT_PATH_${CONF}  path to build artifact (current configuration)
-#     CND_PACKAGE_DIR_${CONF}    directory of package (current configuration)
-#     CND_PACKAGE_NAME_${CONF}   name of package (current configuration)
-#     CND_PACKAGE_PATH_${CONF}   path to package (current configuration)
-#
-# NOCDDL
+CC=arm-none-eabi-gcc
+OBJCOPY=arm-none-eabi-objcopy
 
+BOARD_ID ?= EL_04002_22
+BOARD_USAGE ?= SBFront1
 
-# Environment 
-MKDIR=mkdir
-CP=cp
-CCADMIN=CCadmin
-RANLIB=ranlib
+TARGET_ELF ?= production.elf
+TARGET_HEX ?= production.hex
+TARGET_MAP ?= production.map
 
+BUILD_DIR ?= ./build_$(BOARD_ID)_$(BOARD_USAGE)
+SRC_DIRS ?= ./
 
-# build
-build: .build-post
+VPATH = \
+	. \
+	Applications \
+	Drivers \
+	../Shared/Applications \
+	../Shared/Drivers \
+	../Shared/RTOS \
+	../Shared/RTOS/FreeRTOS/Source \
+	../Shared/RTOS/FreeRTOS/Source/portable/GCC/ARM_CM0 \
+	../Shared/RTOS/FreeRTOS/Source/portable/MemMang
 
-.build-pre:
-# Add your pre 'build' code here...
+SRCS := \
+	main.c \
+	app_main.c \
+	app_sensor.c \
+	app_statuslight.c \
+	drv_adc_private.c \
+	drv_adc.c \
+	drv_can_private.c \
+	drv_can.c \
+	drv_clock_private.c \
+	drv_clock.c \
+	drv_hsd.c \
+	drv_main.c \
+	drv_ws2812b_private.c \
+	drv_ws2812b.c \
+	port.c \
+	heap_3.c \
+	croutine.c \
+	event_groups.c \
+	list.c \
+	queue.c \
+	stream_buffer.c \
+	tasks.c \
+	timers.c \
+	startup_samc21j18a.c \
+	system_samc21j18a.c
+	
+OBJS := $(SRCS:%.c=$(BUILD_DIR)/%.o)
+DEPS := $(OBJS:.o=.d)
 
-.build-post: .build-impl
-# Add your post 'build' code here...
+INC_DIRS := \
+	Applications \
+	Drivers \
+	../Shared/Applications \
+	../Shared/Drivers \
+	../Shared/SAM \
+	../Shared/CMSIS \
+	../Shared/RTOS \
+	../Shared/RTOS/FreeRTOS/Source/include \
+	../Shared/RTOS/FreeRTOS/Source/portable/GCC/ARM_CM0
+INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
+CPPFLAGS ?= $(INC_FLAGS) \
+	-MMD -MP \
+	-mcpu=cortex-m0plus -D__SAMC21E18A__  -mthumb \
+	-ffunction-sections -mlong-calls \
+	-DBOARD_ID=EL_04002_22 -DBOARD_USAGE=SBFront1 \
+	-Wall -Wextra
 
-# clean
-clean: .clean-post
+LDFLAGS ?= -mcpu=cortex-m0plus  -D__SAMC21E18A__   -T"samc21j18a_flash.ld"  -mthumb --specs=nosys.specs -Wl,--gc-sections
 
-.clean-pre:
-# Add your pre 'clean' code here...
-# WARNING: the IDE does not call this target since it takes a long time to
-# simply run make. Instead, the IDE removes the configuration directories
-# under build and dist directly without calling make.
-# This target is left here so people can do a clean when running a clean
-# outside the IDE.
+$(BUILD_DIR)/$(TARGET_ELF): $(BUILD_DIR) $(OBJS)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS) -Wl,-Map=$(BUILD_DIR)/$(TARGET_MAP)
 
-.clean-post: .clean-impl
-# Add your post 'clean' code here...
+$(BUILD_DIR)/$(TARGET_HEX): $(BUILD_DIR)/$(TARGET_ELF)
+	$(OBJCOPY) -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
+# c source
+$(BUILD_DIR)/%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-# clobber
-clobber: .clobber-post
+$(BUILD_DIR):
+ifeq ($(OS),Windows_NT)
+	mkdir $(subst /,\\,$@)
+else
+	mkdir -p $@
+endif
 
-.clobber-pre:
-# Add your pre 'clobber' code here...
+.PHONY: clean production test
 
-.clobber-post: .clobber-impl
-# Add your post 'clobber' code here...
+clean:
+	$(RM) -r $(BUILD_DIR)
 
+production: CPPFLAGS += -Os
+production: $(BUILD_DIR)/$(TARGET_HEX)
 
-# all
-all: .all-post
+debug: CPPFLAGS += -Og -DDEBUG -g
+debug: $(BUILD_DIR)/$(TARGET_ELF)
 
-.all-pre:
-# Add your pre 'all' code here...
+test: $(BUILD_DIR) $(BUILD_DIR)/test_app_statuslight
+	qemu-arm -cpu cortex-m0 $(BUILD_DIR)/test_app_statuslight
 
-.all-post: .all-impl
-# Add your post 'all' code here...
+$(BUILD_DIR)/test_app_statuslight.o: Tests/test_app_statuslight.c
+	$(CC) $(INC_FLAGS) -MMD -MP -mcpu=cortex-m0plus -D__SAMC21E18A__  -mthumb -Wall -Wextra -c $< -o $@
+	
+$(BUILD_DIR)/test_app_statuslight: $(BUILD_DIR)/test_app_statuslight.o $(BUILD_DIR)/app_statuslight.o
+	$(CC) $(BUILD_DIR)/test_app_statuslight.o $(BUILD_DIR)/app_statuslight.o -o $@ -mcpu=cortex-m0plus  -D__SAMC21E18A__ --specs=rdimon.specs 
 
+-include $(DEPS)
 
-# help
-help: .help-post
-
-.help-pre:
-# Add your pre 'help' code here...
-
-.help-post: .help-impl
-# Add your post 'help' code here...
-
-
-
-# include project implementation makefile
-include nbproject/Makefile-impl.mk
-
-# include project make variables
-include nbproject/Makefile-variables.mk

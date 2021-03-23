@@ -27,3 +27,4 @@ disassembly/
 2020/.DS_Store
 .DS_Store
 *.icloud
+build_*/

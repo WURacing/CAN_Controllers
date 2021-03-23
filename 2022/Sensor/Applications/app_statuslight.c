@@ -1,7 +1,6 @@
 #include "app_statuslight.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "sam.h"
 #include "drv_can.h"
 #include "drv_ws2812b.h"
 
@@ -23,7 +22,7 @@ static void StatusTask()
 	while (1)
 	{
 		// Check CAN error status
-		int error = CAN0_REGS->CAN_PSR & CAN_PSR_LEC_Msk;
+		int error = drv_can_read_lec(CAN0_REGS);
 		if (error == 7) //  no change
 		{
 			error = lastError;

@@ -298,3 +298,8 @@ void drv_can_clear_rx_buffer(can_registers_t * bus, enum drv_can_rx_buffer_table
 		}
 	}
 }
+
+int drv_can_read_lec(can_registers_t * bus)
+{
+	return bus->CAN_PSR & CAN_PSR_LEC_Msk;
+}
